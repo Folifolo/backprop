@@ -14,8 +14,8 @@ if __name__ == '__main__':
     y_train = np_utils.to_categorical(y_train, 10)
     y_test = np_utils.to_categorical(y_test, 10)
 
-    model = NN(784, 50, 10, 0.1, 1000)
+    model = NN(784, 30, 10)
     model.init_weights()
-    model.fit(x_train, y_train, 100, (x_test, y_test))
+    model.fit(x_train, y_train, (x_test, y_test))
 
 
