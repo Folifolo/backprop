@@ -25,14 +25,18 @@ class NN:
         self._w1 =np.random.randn(self._hidden_size, self._input_size)/10
         self._w2 =np.random.randn(self._output_size, self._hidden_size)/10
 
+    def softmax(self, X):
+        expX = np.exp(X)
+        return expX / expX.sum(axis=0, keepdims=True)
+
     def forward(self, input):
         output1 = self._w1.dot(input.T)
         output2 = self._w2.dot(output1)
 
-        out2_max = max(output2)
-        exponents = np.exp(output2-out2_max)
-        output2 = exponents / exponents.sum()
-
+        #out2_max = np.max(output2, axis=0)
+        #exponents = np.exp(output2-out2_max)
+        #output2 = exponents / exponents.sum()
+        output2 = self.softmax(output2)
         self._output1 = output1
         self._output2 = output2
 
@@ -54,32 +58,41 @@ class NN:
 
 
     def calculate_acc(self, label, prediction):
-        prediction = np.argmax(prediction)
-        label = np.argmax(label)
+        prediction = np.argmax(prediction, axis= 1)
+        label = np.argmax(label, axis= 1)
         return (prediction == label).mean()
 
     def backprop(self, size):
         self._w2 = self._w2 - self._learning_rate*self._dE2/size
         self._w1 = self._w1 - self._learning_rate*self._dE1/size
 
-    def fit(self, input, label, batch_size = 1):
-        label = label[:100]
+    def fit(self, input, label, batch_size = 1, validate_data = None):
+        #label = label[:100]
         prediction = np.zeros(label.shape)
+        if validate_data != None:
+            prediction_val = np.zeros(validate_data[1].shape)
+
         for epoch in range(self._epochs):
-            for image in range(label.shape[0]):
-                currend_X = input[image:image+batch_size]
-                currend_Y = label[image:image+batch_size]
-                self.forward(currend_X)
-                self.forward_dif(currend_X)
+            for batch in range(batch_size):
+                current_X = input[batch:batch+batch_size]
+                current_Y = label[batch:batch+batch_size]
+                self.forward(current_X)
+                self.forward_dif(current_X)
+                #print(str(np.argmax(self._output2))+" "+str(np.argmax(current_Y)))
+                self.calculate_dE(current_X,current_Y)
 
-                self.calculate_dE(currend_X,currend_Y)
-
-                self.backprop(label.shape[0])
+                self.backprop(batch_size)
 
             for image in range(label.shape[0]):
                 prediction[image] = self.predict(input[image])
-                #print(self.calculate_E(currend_Y,prediction, input.shape[0]))
-            print(self.calculate_acc(label,prediction))
+                #print(self.calculate_E(current_Y,prediction, input.shape[0]))
+            print("train acc: ", self.calculate_acc(label,prediction))
+
+            if validate_data != None:
+                for image in range(validate_data[1].shape[0]):
+                    prediction_val[image] = self.predict(validate_data[0][image])
+                    #print(self.calculate_E(current_Y,prediction, input.shape[0]))
+                print("validate acc: ", self.calculate_acc(validate_data[1],prediction_val))
 
     def predict(self, input):
         self.forward(input)
